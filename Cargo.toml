@@ -3,7 +3,7 @@ name = "const_soft_float"
 version = "0.1.0"
 edition = "2021"
 description = "Const Soft Float Point"
-keywords = ["const", "soft", "fp"]
+keywords = ["const", "soft", "float-point"]
 repository = "https://github.com/823984418/const_soft_float"
 license = "MIT OR Apache-2.0"
 

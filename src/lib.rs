@@ -1,11 +1,5 @@
-#![cfg_attr(feature = "no_std", no_std)]
-#![cfg_attr(feature = "const_trait_impl", feature(const_trait_impl))]
-#![cfg_attr(feature = "const_mut_refs", feature(const_mut_refs))]
-
-pub mod soft_f32;
-pub mod soft_f64;
-
-///
+/// # Rust float-point in constant context
+/// 
 /// features: 
 /// * `no_std`
 /// * `const_trait_impl`
@@ -18,7 +12,7 @@ pub mod soft_f64;
 ///     SoftF32(a).add(SoftF32(b)).to_f32()
 /// }
 /// ```
-/// 
+///
 ///
 /// with `const_trait_impl` usage:
 /// ``` 
@@ -41,6 +35,15 @@ pub mod soft_f64;
 /// }
 /// ```
 ///
+/// 
+
+#![cfg_attr(feature = "no_std", no_std)]
+#![cfg_attr(feature = "const_trait_impl", feature(const_trait_impl))]
+#![cfg_attr(feature = "const_mut_refs", feature(const_mut_refs))]
+
+pub mod soft_f32;
+pub mod soft_f64;
+
 
 const fn abs_diff(a: i32, b: i32) -> i32 {
     if a < b {
