@@ -1,5 +1,8 @@
 # Rust float-point in constant context
 
+Float-point code is from `compiler_builtins = "0.1.87"` and the code has been rewrite so that make it work in a constant context.
+
+If there is any inconsistent behavior, please open an issues.
 
 features:
 * `no_std`
