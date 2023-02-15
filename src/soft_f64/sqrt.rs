@@ -82,7 +82,7 @@ use crate::soft_f64::SoftF64;
 
 type F = SoftF64;
 
-pub const fn sqrt(x: F) -> F {
+pub(crate) const fn sqrt(x: F) -> F {
     const TINY: F = SoftF64(1.0e-300);
 
     let mut z: F;
