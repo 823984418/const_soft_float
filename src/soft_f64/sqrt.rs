@@ -138,13 +138,13 @@ pub(crate) const fn sqrt(x: F) -> F {
     if (m & 1) == 1 {
         /* odd m, double x to make it even */
         ix0 += ix0 + ((ix1 & sign) >> 31) as i32;
-        ix1 += ix1;
+        ix1 = ix1.wrapping_add(ix1);
     }
     m >>= 1; /* m = [m/2] */
 
     /* generate sqrt(x) bit by bit */
     ix0 += ix0 + ((ix1 & sign) >> 31)as i32;
-    ix1 += ix1;
+    ix1 = ix1.wrapping_add(ix1);
     q = 0; /* [q,q1] = sqrt(x) */
     q1 = 0;
     s0 = 0;
@@ -180,7 +180,7 @@ pub(crate) const fn sqrt(x: F) -> F {
             q1 += r;
         }
         ix0 += ix0 + ((ix1 & sign) >> 31) as i32;
-        ix1 += ix1;
+        ix1 = ix1.wrapping_add(ix1);
         r >>= 1;
     }
 
