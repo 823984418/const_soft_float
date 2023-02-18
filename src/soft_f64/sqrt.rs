@@ -218,7 +218,7 @@ const fn gt(l: SoftF64, r: f64) -> bool {
             _ => false
         }
     } else {
-        panic!();
+        panic!("Failed to compare values");
     }
 } 
 
@@ -229,7 +229,7 @@ const fn ge(l: SoftF64, r: f64) -> bool {
             _ => true
         }
     } else {
-        panic!();
+        panic!("Failed to compare values");
     }
 } 
 
