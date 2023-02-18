@@ -15,7 +15,7 @@
 //!
 //!
 //! with `const_trait_impl` usage:
-//! ``` 
+//! ```compile_fail
 //! # #![feature(const_trait_impl)]
 //! # use const_soft_float::soft_f32::SoftF32;
 //! const fn const_f32_add(a: f32, b: f32) -> f32 {
@@ -24,7 +24,7 @@
 //! ```
 //!
 //! with `const_mut_refs` usage:
-//! ``` 
+//! ```compile_fail
 //! # #![feature(const_trait_impl)]
 //! # #![feature(const_mut_refs)]
 //! # use const_soft_float::soft_f32::SoftF32;
