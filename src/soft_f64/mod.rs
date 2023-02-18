@@ -3,6 +3,7 @@ pub mod cmp;
 pub mod div;
 pub mod mul;
 pub mod pow;
+pub mod sqrt;
 
 #[cfg(feature = "const_trait_impl")]
 pub mod const_impl_trait;
@@ -56,6 +57,10 @@ impl SoftF64 {
 
     pub const fn sub(self, rhs: Self) -> Self {
         self.add(rhs.neg())
+    }
+
+    pub const fn sqrt(self) -> Self {
+        sqrt::sqrt(self)
     }
 
     pub const fn powi(self, n: i32) -> Self {
