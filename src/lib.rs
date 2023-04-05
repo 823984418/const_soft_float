@@ -1,6 +1,6 @@
 //! # Rust float-point in constant context
 //!
-//! features:
+//! Features:
 //! * `no_std`
 //! * `const_trait_impl`
 //! * `const_mut_refs`
