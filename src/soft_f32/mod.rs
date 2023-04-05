@@ -1,9 +1,12 @@
 pub mod add;
 pub mod cmp;
+pub mod copysign;
 pub mod div;
 pub mod mul;
 pub mod pow;
+pub mod round;
 pub mod sqrt;
+pub mod trunc;
 
 #[cfg(feature = "const_trait_impl")]
 pub mod const_impl_trait;
@@ -66,12 +69,25 @@ impl SoftF32 {
     pub const fn powi(self, n: i32) -> Self {
         pow::pow(self, n)
     }
+
+    pub const fn copysign(self, other: Self) -> Self {
+        copysign::copysign(self, other)
+    }
+
+    pub const fn trunc(self) -> Self {
+        trunc::trunc(self)
+    }
+
+    pub const fn round(self) -> Self {
+        round::round(self)
+    }
 }
 
 type SelfInt = u32;
 type SelfSignedInt = i32;
 type SelfExpInt = i16;
 
+#[allow(unused)]
 impl SoftF32 {
     const ZERO: Self = Self(0.0);
     const ONE: Self = Self(1.0);
@@ -138,4 +154,32 @@ const fn u64_hi(x: u64) -> u32 {
 const fn u32_widen_mul(a: u32, b: u32) -> (u32, u32) {
     let x = u64::wrapping_mul(a as _, b as _);
     (u64_lo(x), u64_hi(x))
+}
+
+#[cfg(test)]
+impl SoftF32 {
+    fn assert_eq(a: f32, b: f32) {
+        match (a, b) {
+            (a, b) if a.is_nan() && b.is_nan() => (),
+            (a, b) => assert_eq!(a, b),
+        }
+    }
+
+    fn fuzz_iter() -> impl Iterator<Item = SelfInt> {
+        0..u32::MAX
+    }
+
+    fn fuzz_test_op(
+        soft: impl Fn(SoftF32) -> SoftF32,
+        hard: impl Fn(f32) -> f32,
+        name: Option<&str>,
+    ) {
+        for (index, bits) in SoftF32::fuzz_iter().enumerate() {
+            SoftF32::assert_eq(soft(SoftF32::from_bits(bits)).0, hard(f32::from_bits(bits)));
+
+            if let (Some(name), 0) = (name, index % 10_000_00) {
+                eprintln!("{}: {}", name, f32::from_bits(bits));
+            }
+        }
+    }
 }

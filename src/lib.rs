@@ -1,6 +1,6 @@
 //! # Rust float-point in constant context
-//! 
-//! features: 
+//!
+//! features:
 //! * `no_std`
 //! * `const_trait_impl`
 //! * `const_mut_refs`
@@ -35,7 +35,7 @@
 //! }
 //! ```
 //!
-//! 
+//!
 
 #![cfg_attr(feature = "no_std", no_std)]
 #![cfg_attr(feature = "const_trait_impl", feature(const_trait_impl))]
@@ -43,7 +43,6 @@
 
 pub mod soft_f32;
 pub mod soft_f64;
-
 
 const fn abs_diff(a: i32, b: i32) -> i32 {
     if a < b {

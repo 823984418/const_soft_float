@@ -4,8 +4,8 @@
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
  */
 
-use core::cmp::Ordering;
 use crate::soft_f32::SoftF32;
+use core::cmp::Ordering;
 
 pub(crate) const fn sqrtf(x: SoftF32) -> SoftF32 {
     const TINY: SoftF32 = SoftF32(1.0e-30);
@@ -76,7 +76,7 @@ pub(crate) const fn sqrtf(x: SoftF32) -> SoftF32 {
     /* use floating add to find out rounding direction */
     if ix != 0 {
         z = SoftF32(1.0).sub(TINY); /* raise inexact flag */
-        if ge(z, 1.0)  {
+        if ge(z, 1.0) {
             z = SoftF32(1.0).add(TINY);
             if gt(z, 1.0) {
                 q += 2;
@@ -95,23 +95,23 @@ const fn gt(l: SoftF32, r: f32) -> bool {
     if let Some(ord) = l.cmp(SoftF32(r)) {
         match ord {
             Ordering::Greater => true,
-            _ => false
+            _ => false,
         }
     } else {
         panic!("Failed to compare values");
     }
-} 
+}
 
 const fn ge(l: SoftF32, r: f32) -> bool {
     if let Some(ord) = l.cmp(SoftF32(r)) {
         match ord {
             Ordering::Less => false,
-            _ => true
+            _ => true,
         }
     } else {
         panic!("Failed to compare values");
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {
@@ -143,10 +143,10 @@ mod tests {
             let hard = soft.0;
             match (soft.sqrt().0, hard.sqrt()) {
                 (a, b) if a.is_nan() && b.is_nan() => (),
-                (a, b) => assert_eq!(a, b)
+                (a, b) => assert_eq!(a, b),
             }
 
-            if index%10_000_00 == 0 {
+            if index % 10_000_00 == 0 {
                 eprintln!("current: {}", hard);
             }
         }
