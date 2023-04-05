@@ -1,0 +1,90 @@
+on: [push]
+
+name: CI
+
+jobs:
+  fmt:
+    name: Rustfmt
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.config.target }}
+          override: true      
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
+
+  check:
+    name: Check
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.config.target }}
+        override: true   
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.config.os }}
+    needs: [check, fmt]
+    strategy:
+      fail-fast: true
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+          - { os: macos-latest, target: 'x86_64-apple-darwin' }
+          - { os: windows-latest, target: 'x86_64-pc-windows-msvc' }
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.config.target }}
+          override: true      
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+  
+  fuzz:
+    name: Fuzz
+    runs-on: ${{ matrix.config.os }}
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+          - { os: macos-latest, target: 'x86_64-apple-darwin' }
+          - { os: windows-latest, target: 'x86_64-pc-windows-msvc' }
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.config.target }}
+          override: true      
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -- --ignored
