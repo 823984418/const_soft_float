@@ -153,7 +153,7 @@ pub(crate) const fn div(a: F, b: F) -> F {
     //       is the error in the reciprocal of b scaled by the maximum
     //       possible value of a.  As a consequence of this error bound,
     //       either q or nextafter(q) is the correctly rounded
-    let mut quotient = u32_widen_mul(a_significand << 1,reciprocal as FInt).1;
+    let mut quotient = u32_widen_mul(a_significand << 1, reciprocal as FInt).1;
 
     // Two cases: quotient is in [0.5, 1.0) or quotient is in [1.0, 2.0).
     // In either case, we are going to compute a residual of the form

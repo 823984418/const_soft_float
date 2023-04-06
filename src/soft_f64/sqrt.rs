@@ -76,7 +76,7 @@
  *      sqrt(NaN) = NaN         ... with invalid signal for signaling NaN
  */
 
- use core::cmp::Ordering;
+use core::cmp::Ordering;
 
 use crate::soft_f64::SoftF64;
 
@@ -130,7 +130,7 @@ pub(crate) const fn sqrt(x: F) -> F {
             ix0 <<= 1;
         }
         m -= i - 1;
-        ix0 |= (ix1 >> (32 - i) as usize)as i32;
+        ix0 |= (ix1 as usize >> (32 - i) as usize) as i32;
         ix1 = ix1 << i as usize;
     }
     m -= 1023; /* unbias exponent */
@@ -143,7 +143,7 @@ pub(crate) const fn sqrt(x: F) -> F {
     m >>= 1; /* m = [m/2] */
 
     /* generate sqrt(x) bit by bit */
-    ix0 += ix0 + ((ix1 & sign) >> 31)as i32;
+    ix0 += ix0 + ((ix1 & sign) >> 31) as i32;
     ix1 = ix1.wrapping_add(ix1);
     q = 0; /* [q,q1] = sqrt(x) */
     q1 = 0;
@@ -187,12 +187,12 @@ pub(crate) const fn sqrt(x: F) -> F {
     /* use floating add to find out rounding direction */
     if (ix0 as u32 | ix1) != 0 {
         z = SoftF64(1.0).sub(TINY); /* raise inexact flag */
-        if  ge(z, 1.0)  {
+        if ge(z, 1.0) {
             z = SoftF64(1.0).add(TINY);
             if q1 == 0xffffffff {
                 q1 = 0;
                 q += 1;
-            } else if gt(z, 1.0)  {
+            } else if gt(z, 1.0) {
                 if q1 == 0xfffffffe {
                     q += 1;
                 }
@@ -215,47 +215,52 @@ const fn gt(l: SoftF64, r: f64) -> bool {
     if let Some(ord) = l.cmp(SoftF64(r)) {
         match ord {
             Ordering::Greater => true,
-            _ => false
+            _ => false,
         }
     } else {
         panic!("Failed to compare values");
     }
-} 
+}
 
 const fn ge(l: SoftF64, r: f64) -> bool {
     if let Some(ord) = l.cmp(SoftF64(r)) {
         match ord {
             Ordering::Less => false,
-            _ => true
+            _ => true,
         }
     } else {
         panic!("Failed to compare values");
     }
-} 
+}
 
- 
- #[cfg(test)]
- mod tests {
-     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
     //  use core::f64::*;
- 
-     #[test]
-     fn sanity_check() {
+
+    #[test]
+    fn sanity_check() {
         const SQRT_100: SoftF64 = sqrt(SoftF64(100.0));
         assert_eq!(SQRT_100.0, 10.0);
 
         const SQRT_4: SoftF64 = sqrt(SoftF64(4.0));
         assert_eq!(SQRT_4.0, 2.0);
-     }
- 
-     /// The spec: https://en.cppreference.com/w/cpp/numeric/math/sqrt
-     #[test]
-     fn spec_tests() {
-         // Not Asserted: FE_INVALID exception is raised if argument is negative.
-         assert!(sqrt(SoftF64(-1.0)).0.is_nan());
-         assert!(sqrt(SoftF64(f64::NAN)).0.is_nan());
-         for f in [0.0, -0.0, f64::INFINITY].iter().copied() {
-             assert_eq!(sqrt(SoftF64(f)).0, f);
-         }
-     }
- }
+    }
+
+    /// The spec: https://en.cppreference.com/w/cpp/numeric/math/sqrt
+    #[test]
+    fn spec_tests() {
+        // Not Asserted: FE_INVALID exception is raised if argument is negative.
+        assert!(sqrt(SoftF64(-1.0)).0.is_nan());
+        assert!(sqrt(SoftF64(f64::NAN)).0.is_nan());
+        for f in [0.0, -0.0, f64::INFINITY].iter().copied() {
+            assert_eq!(sqrt(SoftF64(f)).0, f);
+        }
+    }
+
+    #[ignore]
+    #[test]
+    fn check_all() {
+        SoftF64::fuzz_test_op(SoftF64::sqrt, f64::sqrt, Some("sqrt"))
+    }
+}
