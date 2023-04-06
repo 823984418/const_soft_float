@@ -138,17 +138,6 @@ mod tests {
     #[ignore]
     #[test]
     fn check_all() {
-        for (index, bits) in (0..u32::MAX).enumerate() {
-            let soft = SoftF32::from_bits(bits);
-            let hard = soft.0;
-            match (soft.sqrt().0, hard.sqrt()) {
-                (a, b) if a.is_nan() && b.is_nan() => (),
-                (a, b) => assert_eq!(a, b),
-            }
-
-            if index % 10_000_00 == 0 {
-                eprintln!("current: {}", hard);
-            }
-        }
+        SoftF32::fuzz_test_op(SoftF32::sqrt, f32::sqrt, Some("sqrt"))
     }
 }

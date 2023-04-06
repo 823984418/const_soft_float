@@ -130,7 +130,7 @@ pub(crate) const fn sqrt(x: F) -> F {
             ix0 <<= 1;
         }
         m -= i - 1;
-        ix0 |= (ix1 >> (32 - i) as usize) as i32;
+        ix0 |= (ix1 as usize >> (32 - i) as usize) as i32;
         ix1 = ix1 << i as usize;
     }
     m -= 1023; /* unbias exponent */
@@ -256,5 +256,11 @@ mod tests {
         for f in [0.0, -0.0, f64::INFINITY].iter().copied() {
             assert_eq!(sqrt(SoftF64(f)).0, f);
         }
+    }
+
+    #[ignore]
+    #[test]
+    fn check_all() {
+        SoftF64::fuzz_test_op(SoftF64::sqrt, f64::sqrt, Some("sqrt"))
     }
 }
