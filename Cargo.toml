@@ -1,6 +1,6 @@
 [package]
 name = "const_soft_float"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Const Soft Float Point"
 keywords = ["const", "soft", "float-point"]
@@ -8,9 +8,6 @@ repository = "https://github.com/823984418/const_soft_float"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-
-#[dependencies.compiler_builtins]
-#version = "0.1.87"
 
 [dev-dependencies]
 cfg-if = "1"

@@ -161,7 +161,23 @@ impl SoftF32 {
     fn assert_eq(a: f32, b: f32) {
         match (a, b) {
             (a, b) if a.is_nan() && b.is_nan() => (),
-            (a, b) => assert_eq!(a, b),
+            (a, b) => assert_eq!(a, b, "results not equal for soft: {} and hard: {}", a, b),
+        }
+    }
+
+    fn assert_eq_eps(a: f32, b: f32, eps: f32) {
+        match (a, b) {
+            (a, b) if a.is_nan() && b.is_nan() => (),
+            (a, b) if a.is_infinite() && b.is_infinite() => {
+                assert_eq!(a.is_sign_positive(), b.is_sign_positive())
+            }
+            (a, b) => assert!(
+                (a - b).abs() < eps,
+                "results not equal within eps: {} for soft: {} and hard: {}",
+                eps,
+                a,
+                b
+            ),
         }
     }
 
@@ -170,12 +186,30 @@ impl SoftF32 {
     }
 
     fn fuzz_test_op(
-        soft: impl Fn(SoftF32) -> SoftF32,
-        hard: impl Fn(f32) -> f32,
+        mut soft: impl FnMut(SoftF32) -> SoftF32,
+        mut hard: impl FnMut(f32) -> f32,
         name: Option<&str>,
     ) {
         for (index, bits) in SoftF32::fuzz_iter().enumerate() {
             SoftF32::assert_eq(soft(SoftF32::from_bits(bits)).0, hard(f32::from_bits(bits)));
+
+            if let (Some(name), 0) = (name, index % 10_000_00) {
+                eprintln!("{}: {}", name, f32::from_bits(bits));
+            }
+        }
+    }
+
+    fn fuzz_test_op_epsilon(
+        mut soft: impl FnMut(SoftF32) -> SoftF32,
+        mut hard: impl FnMut(f32) -> f32,
+        name: Option<&str>,
+    ) {
+        for (index, bits) in SoftF32::fuzz_iter().enumerate() {
+            SoftF32::assert_eq_eps(
+                soft(SoftF32::from_bits(bits)).0,
+                hard(f32::from_bits(bits)),
+                f32::EPSILON,
+            );
 
             if let (Some(name), 0) = (name, index % 10_000_00) {
                 eprintln!("{}: {}", name, f32::from_bits(bits));

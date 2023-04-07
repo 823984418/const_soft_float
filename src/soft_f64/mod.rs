@@ -161,7 +161,23 @@ impl SoftF64 {
     fn assert_eq(a: f64, b: f64) {
         match (a, b) {
             (a, b) if a.is_nan() && b.is_nan() => (),
-            (a, b) => assert_eq!(a, b),
+            (a, b) => assert_eq!(a, b, "results not equal for soft: {} and hard: {}", a, b),
+        }
+    }
+
+    fn assert_eq_eps(a: f64, b: f64, eps: f64) {
+        match (a, b) {
+            (a, b) if a.is_nan() && b.is_nan() => (),
+            (a, b) if a.is_infinite() && b.is_infinite() => {
+                assert_eq!(a.is_sign_positive(), b.is_sign_positive())
+            }
+            (a, b) => assert!(
+                (a - b).abs() < eps,
+                "results not equal within eps: {} for soft: {} and hard: {}",
+                eps,
+                a,
+                b
+            ),
         }
     }
 
@@ -176,12 +192,30 @@ impl SoftF64 {
     }
 
     fn fuzz_test_op(
-        soft: impl Fn(SoftF64) -> SoftF64,
-        hard: impl Fn(f64) -> f64,
+        mut soft: impl FnMut(SoftF64) -> SoftF64,
+        mut hard: impl FnMut(f64) -> f64,
         name: Option<&str>,
     ) {
         for (index, bits) in SoftF64::fuzz_iter().enumerate() {
             SoftF64::assert_eq(soft(SoftF64::from_bits(bits)).0, hard(f64::from_bits(bits)));
+
+            if let (Some(name), 0) = (name, index % 10_000_00) {
+                eprintln!("{}: {}", name, f64::from_bits(bits));
+            }
+        }
+    }
+
+    fn fuzz_test_op_epsilon(
+        mut soft: impl FnMut(SoftF64) -> SoftF64,
+        mut hard: impl FnMut(f64) -> f64,
+        name: Option<&str>,
+    ) {
+        for (index, bits) in SoftF64::fuzz_iter().enumerate() {
+            SoftF64::assert_eq_eps(
+                soft(SoftF64::from_bits(bits)).0,
+                hard(f64::from_bits(bits)),
+                f64::EPSILON,
+            );
 
             if let (Some(name), 0) = (name, index % 10_000_00) {
                 eprintln!("{}: {}", name, f64::from_bits(bits));

@@ -197,3 +197,34 @@ pub(crate) const fn div(a: F, b: F) -> F {
         return F::from_repr(abs_result | quotient_sign);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::soft_f32::SoftF32;
+
+    #[test]
+    fn sanity_check() {
+        assert_eq!(SoftF32(10.0).div(SoftF32(5.0)).0, 2.0)
+    }
+
+    #[ignore]
+    #[test]
+    fn fuzz_div() {
+        use nanorand::{Rng, WyRand};
+
+        let mut soft_rng = WyRand::new_seed(WyRand::new().generate::<u64>());
+        let mut hard_rng = soft_rng.clone();
+
+        let soft = |x: SoftF32| -> SoftF32 {
+            let other = SoftF32::from_bits(soft_rng.generate::<u32>());
+            x.div(other)
+        };
+
+        let hard = |x: f32| -> f32 {
+            let other = f32::from_bits(hard_rng.generate::<u32>());
+            x / other
+        };
+
+        SoftF32::fuzz_test_op_epsilon(soft, hard, Some("div"))
+    }
+}

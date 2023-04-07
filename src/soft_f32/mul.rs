@@ -182,3 +182,34 @@ pub(crate) const fn mul(a: F, b: F) -> F {
 
     F::from_repr(product_high)
 }
+
+#[cfg(test)]
+mod test {
+    use crate::soft_f32::SoftF32;
+
+    #[test]
+    fn sanity_check() {
+        assert_eq!(SoftF32(2.0).mul(SoftF32(2.0)).0, 4.0)
+    }
+
+    #[ignore]
+    #[test]
+    fn fuzz_mul() {
+        use nanorand::{Rng, WyRand};
+
+        let mut soft_rng = WyRand::new_seed(WyRand::new().generate::<u64>());
+        let mut hard_rng = soft_rng.clone();
+
+        let soft = |x: SoftF32| -> SoftF32 {
+            let other = SoftF32::from_bits(soft_rng.generate::<u32>());
+            x.mul(other)
+        };
+
+        let hard = |x: f32| -> f32 {
+            let other = f32::from_bits(hard_rng.generate::<u32>());
+            x * other
+        };
+
+        SoftF32::fuzz_test_op_epsilon(soft, hard, Some("mul"))
+    }
+}
