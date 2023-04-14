@@ -1,10 +1,14 @@
+mod helpers;
+
 pub mod add;
 pub mod cmp;
 pub mod copysign;
+pub mod cos;
 pub mod div;
 pub mod mul;
 pub mod pow;
 pub mod round;
+pub mod sin;
 pub mod sqrt;
 pub mod trunc;
 
@@ -80,6 +84,14 @@ impl SoftF32 {
 
     pub const fn round(self) -> Self {
         round::round(self)
+    }
+
+    pub const fn sin(self) -> Self {
+        sin::sinf(self)
+    }
+
+    pub const fn cos(self) -> Self {
+        cos::cos(self)
     }
 }
 
