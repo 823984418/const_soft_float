@@ -17,7 +17,7 @@ pub use const_impl_trait as impl_trait;
 #[cfg(not(feature = "const_trait_impl"))]
 pub mod impl_trait;
 
-#[derive(Copy, Clone)]
+#[derive(Default, Copy, Clone)]
 #[repr(transparent)]
 pub struct SoftF64(pub f64);
 
