@@ -2,6 +2,12 @@ use crate::soft_f32::SoftF32;
 
 type F = SoftF32;
 
+impl From<f32> for F {
+    fn from(value: f32) -> Self {
+        F::from_f32(value)
+    }
+}
+
 impl PartialEq<Self> for F {
     fn eq(&self, other: &Self) -> bool {
         match self.cmp(*other) {
