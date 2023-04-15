@@ -2,6 +2,12 @@ use crate::soft_f64::SoftF64;
 
 type F = SoftF64;
 
+impl const From<f64> for F {
+    fn from(value: f64) -> Self {
+        F::from_f64(value)
+    }
+}
+
 impl const PartialEq<Self> for F {
     fn eq(&self, other: &Self) -> bool {
         match self.cmp(*other) {
@@ -76,3 +82,4 @@ impl core::ops::SubAssign for F {
         *self = *self - rhs;
     }
 }
+
