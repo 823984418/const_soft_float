@@ -74,3 +74,13 @@ pub(crate) const fn cos(x: SoftF64) -> SoftF64 {
         _ => k_sin(y0, y1, 1),
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::soft_f64::SoftF64;
+
+    #[test]
+    fn test_large_neg() {
+        assert_eq!(SoftF64(-1647101.0).cos().to_f64(), (-1647101.0_f64).cos())
+    }
+}

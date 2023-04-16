@@ -192,7 +192,7 @@ pub(crate) const fn rem_pio2(x: SoftF64) -> (i32, SoftF64, SoftF64) {
         _ => panic!(),
     };
     if sign != 0 {
-        return (n, ty[0].neg(), ty[1].neg());
+        return (-n, ty[0].neg(), ty[1].neg());
     }
     (n, ty[0], ty[1])
 }
