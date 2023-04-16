@@ -39,13 +39,13 @@ fn fuzz_sub() {
 fn fuzz_div() {
     fuzz_test_op_2(
         SoftF64::div,
-        crate::compiler_builtins::div32,
+        crate::compiler_builtins::div64,
         crate::Argument::First,
         Some("div"),
     );
     fuzz_test_op_2(
         SoftF64::div,
-        crate::compiler_builtins::div32,
+        crate::compiler_builtins::div64,
         crate::Argument::Second,
         Some("div"),
     );
@@ -83,7 +83,7 @@ fn fuzz_round() {
 }
 
 #[test]
-fn fuzz() {
+fn fuzz_trunc() {
     fuzz_test_op(SoftF64::trunc, f64::trunc, Some("trunc"));
 }
 

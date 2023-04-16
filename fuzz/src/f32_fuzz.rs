@@ -83,7 +83,7 @@ fn fuzz_round() {
 }
 
 #[test]
-fn fuzz() {
+fn fuzz_trunc() {
     fuzz_test_op(SoftF32::trunc, f32::trunc, Some("trunc"));
 }
 

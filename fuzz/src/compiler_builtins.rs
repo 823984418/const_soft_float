@@ -915,7 +915,6 @@ where
     }
 }
 
-#[cfg(unused)]
 pub(crate) fn div64<F: Float>(a: F, b: F) -> F
 where
     u32: CastInto<F::Int>,
