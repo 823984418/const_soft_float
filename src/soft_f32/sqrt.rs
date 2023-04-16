@@ -134,10 +134,4 @@ mod tests {
             assert_eq!(sqrtf(SoftF32(f)).0, f);
         }
     }
-
-    #[ignore]
-    #[test]
-    fn check_all() {
-        SoftF32::fuzz_test_op(SoftF32::sqrt, f32::sqrt, Some("sqrt"))
-    }
 }

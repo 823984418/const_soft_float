@@ -230,3 +230,13 @@ pub(crate) const fn div(a: F, b: F) -> F {
         return F::from_repr(abs_result | quotient_sign);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::SoftF64;
+
+    #[test]
+    fn sanity_check() {
+        assert_eq!(SoftF64(10.0).div(SoftF64(5.0)).0, 2.0)
+    }
+}

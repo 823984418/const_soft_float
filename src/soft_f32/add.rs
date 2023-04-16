@@ -181,3 +181,13 @@ pub(crate) const fn add(a: F, b: F) -> F {
 
     F::from_repr(result)
 }
+
+#[cfg(test)]
+mod test {
+    use crate::soft_f32::SoftF32;
+
+    #[test]
+    fn sanity_check() {
+        assert_eq!(SoftF32(1.0).add(SoftF32(1.0)).0, 2.0)
+    }
+}

@@ -25,3 +25,13 @@ pub(crate) const fn pow(a: F, b: i32) -> F {
         mul
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::soft_f64::SoftF64;
+
+    #[test]
+    fn sanity_check() {
+        assert_eq!(SoftF64(2.0).powi(2).0, 4.0)
+    }
+}
