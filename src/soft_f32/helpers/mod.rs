@@ -1,7 +1,6 @@
 mod k_cosf;
 mod k_sinf;
 
-
 mod rem_pio2f;
 
 pub(crate) use k_cosf::k_cosf;

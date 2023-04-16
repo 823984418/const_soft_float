@@ -14,10 +14,16 @@ mod sf32 {
 
     use const_soft_float::soft_f32::SoftF32;
 
-    fn is_eq(a: f32, b: f32) -> bool {
-        match (a, b) {
-            (a, b) if a.is_nan() && b.is_nan() => true,
-            (a, b) => a == b,
+    fn is_eq_eps(a: f32, b: f32, eps: Option<f32>) -> bool {
+        match eps {
+            None => match (a, b) {
+                (a, b) if a.is_nan() && b.is_nan() => true,
+                (a, b) => a == b,
+            },
+            Some(eps) => match (a, b) {
+                (a, b) if a.is_nan() && b.is_nan() => true,
+                (a, b) => (a - b).abs() < a.abs() * eps && (a - b).abs() < b.abs() * eps,
+            },
         }
     }
 
@@ -28,12 +34,13 @@ mod sf32 {
     pub fn fuzz_test_op(
         mut soft: impl FnMut(SoftF32) -> SoftF32,
         mut hard: impl FnMut(f32) -> f32,
+        eps: Option<f32>,
         name: Option<&str>,
     ) {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF32(f32::from_bits(bits)));
             let hard_res = hard(f32::from_bits(bits));
-            if !is_eq(soft_res.0, hard_res) {
+            if !is_eq_eps(soft_res.0, hard_res, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {}({}) = {} \n\t Ref: {}({}) = {}",
@@ -66,6 +73,7 @@ mod sf32 {
         mut soft: impl FnMut(SoftF32, SoftF32) -> SoftF32,
         mut hard: impl FnMut(f32, f32) -> f32,
         fuzz_arg: Argument,
+        eps: Option<f32>,
         name: Option<&str>,
     ) {
         use nanorand::{Rng, WyRand};
@@ -94,7 +102,7 @@ mod sf32 {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF32::from_bits(bits));
             let hard_res = hard(f32::from_bits(bits));
-            if !is_eq(soft_res.0 .0, hard_res.0) {
+            if !is_eq_eps(soft_res.0 .0, hard_res.0, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {} {} {} = {} \n\t Ref: {} {} {} = {}",
@@ -130,6 +138,7 @@ mod sf32 {
     pub fn fuzz_test_op_2_other<T: nanorand::RandomGen<nanorand::WyRand, 8> + Display + Copy>(
         mut soft: impl FnMut(SoftF32, T) -> SoftF32,
         mut hard: impl FnMut(f32, T) -> f32,
+        eps: Option<f32>,
         name: Option<&str>,
     ) {
         use nanorand::{Rng, WyRand};
@@ -152,7 +161,7 @@ mod sf32 {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF32::from_bits(bits));
             let hard_res = hard(f32::from_bits(bits));
-            if !is_eq(soft_res.0 .0, hard_res.0) {
+            if !is_eq_eps(soft_res.0 .0, hard_res.0, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {} {} {} = {} \n\t Ref: {} {} {} = {}",
@@ -193,10 +202,16 @@ mod sf64 {
 
     use crate::Argument;
 
-    fn is_eq(a: f64, b: f64) -> bool {
-        match (a, b) {
-            (a, b) if a.is_nan() && b.is_nan() => true,
-            (a, b) => a == b,
+    fn is_eq_eps(a: f64, b: f64, eps: Option<f64>) -> bool {
+        match eps {
+            None => match (a, b) {
+                (a, b) if a.is_nan() && b.is_nan() => true,
+                (a, b) => a == b,
+            },
+            Some(eps) => match (a, b) {
+                (a, b) if a.is_nan() && b.is_nan() => true,
+                (a, b) => (a - b).abs() < a.abs() * eps && (a - b).abs() < b.abs() * eps,
+            },
         }
     }
 
@@ -213,12 +228,13 @@ mod sf64 {
     pub fn fuzz_test_op(
         mut soft: impl FnMut(SoftF64) -> SoftF64,
         mut hard: impl FnMut(f64) -> f64,
+        eps: Option<f64>,
         name: Option<&str>,
     ) {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF64(f64::from_bits(bits)));
             let hard_res = hard(f64::from_bits(bits));
-            if !is_eq(soft_res.0, hard_res) {
+            if !is_eq_eps(soft_res.0, hard_res, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {}({}) = {} \n\t Ref: {}({}) = {}",
@@ -251,6 +267,7 @@ mod sf64 {
         mut soft: impl FnMut(SoftF64, SoftF64) -> SoftF64,
         mut hard: impl FnMut(f64, f64) -> f64,
         fuzz_arg: Argument,
+        eps: Option<f64>,
         name: Option<&str>,
     ) {
         use nanorand::{Rng, WyRand};
@@ -279,7 +296,7 @@ mod sf64 {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF64::from_bits(bits));
             let hard_res = hard(f64::from_bits(bits));
-            if !is_eq(soft_res.0 .0, hard_res.0) {
+            if !is_eq_eps(soft_res.0 .0, hard_res.0, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {} {} {} = {} \n\t Ref: {} {} {} = {}",
@@ -315,6 +332,7 @@ mod sf64 {
     pub fn fuzz_test_op_2_other<T: nanorand::RandomGen<nanorand::WyRand, 8> + Display + Copy>(
         mut soft: impl FnMut(SoftF64, T) -> SoftF64,
         mut hard: impl FnMut(f64, T) -> f64,
+        eps: Option<f64>,
         name: Option<&str>,
     ) {
         use nanorand::{Rng, WyRand};
@@ -337,7 +355,7 @@ mod sf64 {
         for (index, bits) in fuzz_iter().enumerate() {
             let soft_res = soft(SoftF64::from_bits(bits));
             let hard_res = hard(f64::from_bits(bits));
-            if !is_eq(soft_res.0 .0, hard_res.0) {
+            if !is_eq_eps(soft_res.0 .0, hard_res.0, eps) {
                 match name {
                     Some(name) => eprintln!(
                         "NE Result for {}: \n\t Soft: {} {} {} = {} \n\t Ref: {} {} {} = {}",

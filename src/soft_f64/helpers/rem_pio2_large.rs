@@ -13,8 +13,7 @@
 
 use crate::soft_f64::SoftF64;
 
-use super::{scalbn, ge, eq};
-
+use super::{eq, ge, scalbn};
 
 // initial value for jk
 const INIT_JK: [usize; 4] = [3, 4, 4, 6];
@@ -133,7 +132,6 @@ const PIO2: [SoftF64; 8] = [
     SoftF64(2.16741683877804819444e-51), /* 0x3569F31D, 0x00000000 */
 ];
 
-
 //
 // Input parameters:
 //      x[]     The input value (must be positive) is broken into nx
@@ -225,8 +223,13 @@ const PIO2: [SoftF64; 8] = [
 /// more accurately, = 0 mod 8 ). Thus the number of operations are
 /// independent of the exponent of the input.
 #[cfg_attr(all(test, assert_no_panic), no_panic::no_panic)]
-pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;X], y: &[SoftF64;Y], e0: i32, prec: usize) -> (i32, [SoftF64;Y]) {
-    let mut y: [SoftF64;Y] = *y;
+pub(crate) const fn rem_pio2_large<const Y: usize>(
+    x: &[SoftF64],
+    y: &[SoftF64; Y],
+    e0: i32,
+    prec: usize,
+) -> (i32, [SoftF64; Y]) {
+    let mut y: [SoftF64; Y] = *y;
     let x1p24 = SoftF64::from_bits(0x4170000000000000); // 0x1p24 === 2 ^ 24
     let x1p_24 = SoftF64::from_bits(0x3e70000000000000); // 0x1p_24 === 2 ^ (-24)
 
@@ -247,7 +250,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
 
     /* determine jx,jv,q0, note that 3>q0 */
     let jx = nx - 1;
-    let mut jv = (e0 - 3)/24;
+    let mut jv = (e0 - 3) / 24;
     if jv < 0 {
         jv = 0;
     }
@@ -278,10 +281,10 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
             let mut j = 0;
             while j <= jx {
                 fw = fw.add(x[j].mul(f[jx + i - j]));
-                j+=1;
+                j += 1;
             }
             q[i] = fw;
-            i+=1;
+            i += 1;
         }
     }
 
@@ -326,7 +329,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
             let mut carry = 0i32;
             {
                 let mut i = 0;
-                while  i < jz {
+                while i < jz {
                     /* compute 1-q */
                     let j = iq[i];
                     if carry == 0 {
@@ -337,7 +340,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                     } else {
                         iq[i] = 0xffffff - j;
                     }
-                    i+=1;
+                    i += 1;
                 }
             }
             if q0 > 0 {
@@ -355,7 +358,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
             if ih == 2 {
                 z = SoftF64::ONE.sub(z);
                 if carry != 0 {
-                    z =z.sub( scalbn(SoftF64::ONE, q0));
+                    z = z.sub(scalbn(SoftF64::ONE, q0));
                 }
             }
         }
@@ -367,13 +370,13 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                 let mut i = jz - 1;
                 while i >= jk {
                     j |= iq[i];
-                    i-=1;
+                    i -= 1;
                 }
             }
             if j == 0 {
                 /* need recomputation */
                 let mut k = 1;
-                while iq[jk - k] ==0 {
+                while iq[jk - k] == 0 {
                     k += 1; /* k = no. of terms needed */
                 }
 
@@ -387,12 +390,12 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                             let mut j = 0;
                             while j <= jx {
                                 fw = fw.add(x[j].mul(f[jx + i - j]));
-                                j+=1;
+                                j += 1;
                             }
                         }
-                        
+
                         q[i] = fw;
-                        i+=1;
+                        i += 1;
                     }
                 }
                 jz += k;
@@ -431,7 +434,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
         let mut i = jz;
         while i != usize::MAX {
             q[i] = fw.mul(SoftF64(iq[i] as f64));
-            fw = fw.mul( x1p_24);
+            fw = fw.mul(x1p_24);
             i = i.wrapping_sub(1);
         }
     }
@@ -446,10 +449,9 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                 fw = fw.add(PIO2[k].mul(q[i + k]));
                 k += 1;
             }
-            fq[jz - i] =fw;
+            fq[jz - i] = fw;
             i = i.wrapping_sub(1);
         }
-        
     }
 
     /* compress fq[] into y[] */
@@ -458,7 +460,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
             fw = SoftF64::ZERO;
             {
                 let mut i = jz;
-                while i !=usize::MAX   {
+                while i != usize::MAX {
                     fw = fw.add(fq[i]);
                     i = i.wrapping_sub(1);
                 }
@@ -469,21 +471,21 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
             fw = SoftF64::ZERO;
             {
                 let mut i = jz;
-                while i !=usize::MAX  {
+                while i != usize::MAX {
                     fw = fw.add(fq[i]);
                     i = i.wrapping_sub(1);
                 }
             }
             // TODO: drop excess precision here once double_t is used
-            fw = SoftF64( fw.0 as f64) ;
+            fw = SoftF64(fw.0 as f64);
             y[0] = if ih == 0 { fw } else { fw.neg() };
 
             fw = fq[0].sub(fw);
             {
                 let mut i = 1;
-                while i <=jz  {
+                while i <= jz {
                     fw = fw.add(fq[i]);
-                    i-=1;
+                    i += 1;
                 }
             }
 
@@ -497,7 +499,7 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                     fw = fq[i - 1].add(fq[i]);
                     fq[i] = fq[i].add(fq[i - 1].sub(fw));
                     fq[i - 1] = fw;
-                    i-=1;
+                    i -= 1;
                 }
             }
             {
@@ -506,16 +508,16 @@ pub(crate) const fn rem_pio2_large<const X: usize, const Y: usize>(x: &[SoftF64;
                     fw = fq[i - 1].add(fq[i]);
                     fq[i] = fq[i].add(fq[i - 1].sub(fw));
                     fq[i - 1] = fw;
-                    i-=1;
+                    i -= 1;
                 }
             }
             fw = SoftF64::ZERO;
             let mut i = jz;
             while i >= 2 {
                 fw = fw.add(fq[i]);
-                i-=1;
+                i -= 1;
             }
-            
+
             if ih == 0 {
                 y[0] = fq[0];
                 y[1] = fq[1];

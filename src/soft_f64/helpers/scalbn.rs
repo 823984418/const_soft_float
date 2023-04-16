@@ -8,10 +8,10 @@ pub(crate) const fn scalbn(x: SoftF64, mut n: i32) -> SoftF64 {
     let mut y = x;
 
     if n > 1023 {
-        y=y.mul(x1p1023);
+        y = y.mul(x1p1023);
         n -= 1023;
         if n > 1023 {
-            y=y.mul(x1p1023);
+            y = y.mul(x1p1023);
             n -= 1023;
             if n > 1023 {
                 n = 1023;

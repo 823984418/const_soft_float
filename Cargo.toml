@@ -17,6 +17,3 @@ cfg-if = "1"
 no_std = []
 const_trait_impl = []
 const_mut_refs = []
-
-[dev-dependencies]
-libm = "0.2.6"

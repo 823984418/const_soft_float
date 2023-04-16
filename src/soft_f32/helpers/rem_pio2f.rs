@@ -14,7 +14,10 @@
  * ====================================================
  */
 
-use crate::{soft_f32::SoftF32, soft_f64::{SoftF64, helpers::rem_pio2_large}};
+use crate::{
+    soft_f32::SoftF32,
+    soft_f64::{helpers::rem_pio2_large, SoftF64},
+};
 
 const TOINT: SoftF64 = SoftF64(1.5).div(SoftF64(f64::EPSILON));
 

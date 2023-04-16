@@ -3,11 +3,13 @@ pub(crate) mod helpers;
 pub mod add;
 pub mod cmp;
 pub mod copysign;
+pub mod cos;
 pub mod div;
 pub mod floor;
 pub mod mul;
 pub mod pow;
 pub mod round;
+pub mod sin;
 pub mod sqrt;
 pub mod trunc;
 
@@ -87,6 +89,14 @@ impl SoftF64 {
 
     pub const fn floor(self) -> Self {
         floor::floor(self)
+    }
+
+    pub const fn sin(self) -> Self {
+        sin::sin(self)
+    }
+
+    pub const fn cos(self) -> Self {
+        cos::cos(self)
     }
 }
 

@@ -5,6 +5,7 @@ pub mod cmp;
 pub mod copysign;
 pub mod cos;
 pub mod div;
+pub mod floor;
 pub mod mul;
 pub mod pow;
 pub mod round;
@@ -84,6 +85,10 @@ impl SoftF32 {
 
     pub const fn round(self) -> Self {
         round::round(self)
+    }
+
+    pub const fn floor(self) -> Self {
+        floor::floor(self)
     }
 
     pub const fn sin(self) -> Self {

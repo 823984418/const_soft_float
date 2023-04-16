@@ -14,7 +14,7 @@
  * ====================================================
  */
 
-use crate::{soft_f64::SoftF64, soft_f32::SoftF32};
+use crate::{soft_f32::SoftF32, soft_f64::SoftF64};
 
 /* |cos(x) - c(x)| < 2**-34.1 (~[-5.37e-11, 5.295e-11]). */
 const C0: SoftF64 = SoftF64(-0.499999997251031003120); /* -0x1ffffffd0c5e81.0p-54 */

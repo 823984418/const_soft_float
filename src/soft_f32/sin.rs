@@ -18,8 +18,10 @@ use core::f64::consts::FRAC_PI_2;
 
 use crate::soft_f64::SoftF64;
 
-use super::{SoftF32, helpers::{k_sinf, k_cosf, rem_pio2f}};
-
+use super::{
+    helpers::{k_cosf, k_sinf, rem_pio2f},
+    SoftF32,
+};
 
 /* Small multiples of pi/2 rounded to double precision. */
 const S1_PIO2: SoftF64 = SoftF64(1.).mul(SoftF64(FRAC_PI_2)); /* 0x3FF921FB, 0x54442D18 */
@@ -76,7 +78,11 @@ pub const fn sinf(x: SoftF32) -> SoftF32 {
                 return k_cosf(x64.sub(S3_PIO2)).neg();
             }
         }
-        return k_sinf(if sign { x64.add(S4_PIO2) } else { x64.sub(S4_PIO2) });
+        return k_sinf(if sign {
+            x64.add(S4_PIO2)
+        } else {
+            x64.sub(S4_PIO2)
+        });
     }
 
     /* sin(Inf or NaN) is NaN */
@@ -96,7 +102,7 @@ pub const fn sinf(x: SoftF32) -> SoftF32 {
 
 #[cfg(test)]
 mod test {
-    use core::f32::consts::{PI, FRAC_PI_3, FRAC_2_PI, FRAC_PI_2};
+    use core::f32::consts::{FRAC_2_PI, FRAC_PI_2, FRAC_PI_3, PI};
 
     use super::*;
 
@@ -105,11 +111,5 @@ mod test {
         for val in [0.0, FRAC_PI_3, FRAC_PI_2, PI, FRAC_2_PI] {
             assert_eq!(SoftF32(val).sin().to_f32(), val.sin())
         }
-    }
-
-    #[ignore]
-    #[test]
-    fn check_all() {
-        SoftF32::fuzz_test_op(SoftF32::sqrt, libm::sinf, Some("sin"))
     }
 }

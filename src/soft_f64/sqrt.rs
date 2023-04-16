@@ -76,7 +76,10 @@
  *      sqrt(NaN) = NaN         ... with invalid signal for signaling NaN
  */
 
-use crate::soft_f64::{SoftF64, helpers::{ge, gt}};
+use crate::soft_f64::{
+    helpers::{ge, gt},
+    SoftF64,
+};
 
 type F = SoftF64;
 

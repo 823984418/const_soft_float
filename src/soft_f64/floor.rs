@@ -1,4 +1,7 @@
-use super::{SoftF64, helpers::{eq, gt}};
+use super::{
+    helpers::{eq, gt},
+    SoftF64,
+};
 
 const TOINT: SoftF64 = SoftF64(1.0).div(SoftF64(f64::EPSILON));
 
@@ -20,7 +23,11 @@ pub const fn floor(x: SoftF64) -> SoftF64 {
     };
     /* special case because of non-nearest rounding modes */
     if e < 0x3ff {
-        return if (ui >> 63) != 0 { SoftF64(-1.0) } else { SoftF64::ZERO };
+        return if (ui >> 63) != 0 {
+            SoftF64(-1.0)
+        } else {
+            SoftF64::ZERO
+        };
     }
     if gt(y, SoftF64::ZERO) {
         x.add(y).sub(SoftF64::ONE)
@@ -44,7 +51,10 @@ mod tests {
     fn spec_tests() {
         // Not Asserted: that the current rounding mode has no effect.
         assert!(floor(SoftF64(f64::NAN)).0.is_nan());
-        for f in [0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY].iter().copied() {
+        for f in [0.0, -0.0, f64::INFINITY, f64::NEG_INFINITY]
+            .iter()
+            .copied()
+        {
             assert_eq!(floor(SoftF64(f)).0, f);
         }
     }

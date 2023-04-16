@@ -1,4 +1,4 @@
-use crate::{soft_f64::SoftF64, soft_f32::SoftF32};
+use crate::{soft_f32::SoftF32, soft_f64::SoftF64};
 
 /// https://github.com/rust-lang/libm/blob/4c8a973741c014b11ce7f1477693a3e5d4ef9609/src/math/k_sinf.rs
 pub(crate) const fn k_sinf(x: SoftF64) -> SoftF32 {
