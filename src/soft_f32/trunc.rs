@@ -27,10 +27,4 @@ mod tests {
     fn sanity_check() {
         assert_eq!(super::trunc(SoftF32(1.1)).0, 1.0);
     }
-
-    #[ignore]
-    #[test]
-    fn fuzz() {
-        SoftF32::fuzz_test_op(SoftF32::trunc, f32::trunc, Some("trunc"));
-    }
 }

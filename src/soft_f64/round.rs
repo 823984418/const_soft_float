@@ -28,10 +28,4 @@ mod tests {
         assert_eq!((SoftF64(-1.5)).round().0, -2.0);
         assert_eq!((SoftF64(1.5)).round().0, 2.0);
     }
-
-    #[ignore]
-    #[test]
-    fn fuzz() {
-        SoftF64::fuzz_test_op(SoftF64::round, f64::round, Some("round"))
-    }
 }

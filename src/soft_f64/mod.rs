@@ -30,11 +30,11 @@ impl SoftF64 {
         self.0
     }
 
-    const fn from_bits(a: u64) -> Self {
+    pub const fn from_bits(a: u64) -> Self {
         Self(unsafe { core::mem::transmute(a) })
     }
 
-    const fn to_bits(self) -> u64 {
+    pub const fn to_bits(self) -> u64 {
         unsafe { core::mem::transmute(self.0) }
     }
 
@@ -154,72 +154,4 @@ const fn u128_hi(x: u128) -> u64 {
 const fn u64_widen_mul(a: u64, b: u64) -> (u64, u64) {
     let x = u128::wrapping_mul(a as _, b as _);
     (u128_lo(x), u128_hi(x))
-}
-
-#[cfg(test)]
-impl SoftF64 {
-    fn assert_eq(a: f64, b: f64) {
-        match (a, b) {
-            (a, b) if a.is_nan() && b.is_nan() => (),
-            (a, b) => assert_eq!(a, b, "results not equal for soft: {} and hard: {}", a, b),
-        }
-    }
-
-    fn assert_eq_eps(a: f64, b: f64, eps: f64) {
-        match (a, b) {
-            (a, b) if a.is_nan() && b.is_nan() => (),
-            (a, b) if a.is_infinite() && b.is_infinite() => {
-                assert_eq!(a.is_sign_positive(), b.is_sign_positive())
-            }
-            (a, b) => assert!(
-                (a - b).abs() < eps,
-                "results not equal within eps: {} for soft: {} and hard: {}",
-                eps,
-                a,
-                b
-            ),
-        }
-    }
-
-    fn fuzz_iter() -> impl Iterator<Item = SelfInt> {
-        let step =
-            2_usize.pow(((std::mem::size_of::<f64>() - std::mem::size_of::<f32>()) * 8) as u32);
-        (0..10_000_00)
-            .chain((0..u64::MAX).step_by(step))
-            .chain(std::iter::once(SoftF64(0.0).to_bits()))
-            .chain(std::iter::once(SoftF64(-0.0).to_bits()))
-            .chain((u64::MAX - 10_000_00)..10_000_00)
-    }
-
-    fn fuzz_test_op(
-        mut soft: impl FnMut(SoftF64) -> SoftF64,
-        mut hard: impl FnMut(f64) -> f64,
-        name: Option<&str>,
-    ) {
-        for (index, bits) in SoftF64::fuzz_iter().enumerate() {
-            SoftF64::assert_eq(soft(SoftF64::from_bits(bits)).0, hard(f64::from_bits(bits)));
-
-            if let (Some(name), 0) = (name, index % 10_000_00) {
-                eprintln!("{}: {}", name, f64::from_bits(bits));
-            }
-        }
-    }
-
-    fn fuzz_test_op_epsilon(
-        mut soft: impl FnMut(SoftF64) -> SoftF64,
-        mut hard: impl FnMut(f64) -> f64,
-        name: Option<&str>,
-    ) {
-        for (index, bits) in SoftF64::fuzz_iter().enumerate() {
-            SoftF64::assert_eq_eps(
-                soft(SoftF64::from_bits(bits)).0,
-                hard(f64::from_bits(bits)),
-                f64::EPSILON,
-            );
-
-            if let (Some(name), 0) = (name, index % 10_000_00) {
-                eprintln!("{}: {}", name, f64::from_bits(bits));
-            }
-        }
-    }
 }

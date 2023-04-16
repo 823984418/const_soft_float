@@ -257,10 +257,4 @@ mod tests {
             assert_eq!(sqrt(SoftF64(f)).0, f);
         }
     }
-
-    #[ignore]
-    #[test]
-    fn check_all() {
-        SoftF64::fuzz_test_op(SoftF64::sqrt, f64::sqrt, Some("sqrt"))
-    }
 }
