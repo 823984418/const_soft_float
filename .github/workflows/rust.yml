@@ -83,11 +83,12 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.config.target }}
-          override: true      
+          override: true   
+      - run: cd fuzz   
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- soft_f32 --ignored
+          args: --release -- f32
 
   fuzzf64:
     name: Fuzz64
@@ -108,7 +109,8 @@ jobs:
           toolchain: stable
           target: ${{ matrix.config.target }}
           override: true      
+      - run: cd fuzz   
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- soft_f64 --ignored
+          args: --release -- f64
