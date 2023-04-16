@@ -1337,14 +1337,21 @@ where
 }
 
 /// Returns `a` raised to the power `b`
-pub(crate) fn pow<F: Float>(a: F, b: i32) -> F {
+pub(crate) fn pow<F: Float>(a: F, b: i32) -> F
+where
+    u32: CastInto<F::Int>,
+    F::Int: CastInto<u32>,
+    i32: CastInto<F::Int>,
+    F::Int: CastInto<i32>,
+    F::Int: HInt,
+{
     let mut a = a;
     let recip = b < 0;
     let mut pow = Int::abs_diff(b, 0);
     let mut mul = F::ONE;
     loop {
         if (pow & 1) != 0 {
-            mul *= a;
+            mul = crate::compiler_builtins::mul(mul, a);
         }
         pow >>= 1;
         if pow == 0 {
