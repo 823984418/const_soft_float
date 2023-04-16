@@ -1357,7 +1357,7 @@ where
         if pow == 0 {
             break;
         }
-        a *= a;
+        a = crate::compiler_builtins::mul(a, a);
     }
 
     if recip {
