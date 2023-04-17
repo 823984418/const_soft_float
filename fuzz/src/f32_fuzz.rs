@@ -2,6 +2,7 @@
 
 use crate::sf32::{fuzz_test_op, fuzz_test_op_2, fuzz_test_op_2_other};
 use const_soft_float::soft_f32::SoftF32;
+use nanorand::Rng;
 
 #[test]
 fn fuzz_add() {
@@ -77,9 +78,24 @@ fn fuzz_mul() {
 
 #[test]
 fn fuzz_pow() {
+    // TODO move this to a new test generator
+    let mut rng = nanorand::WyRand::new();
+    for i in i32::MIN..i32::MAX {
+        let fl = SoftF32::from_bits(rng.generate::<u32>());
+        let res1 = fl.powi(i).0;
+        let res2 = crate::compiler_builtins::powif(fl.0, i);
+        if !match (res1, res2) {
+            (a, b) if a.is_nan() && b.is_nan() => true,
+            (a, b) => a == b,
+        } {
+            eprintln!("failed: base = {}, pow = {}", fl.0, i);
+            eprintln!("res: soft = {}, ref = {}", res1, res2);
+            panic!()
+        }
+    }
     fuzz_test_op_2_other(
         SoftF32::powi,
-        crate::compiler_builtins::pow,
+        crate::compiler_builtins::powif,
         None,
         Some("pow"),
     )

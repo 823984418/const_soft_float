@@ -52,12 +52,8 @@
 pub mod soft_f32;
 pub mod soft_f64;
 
-const fn abs_diff(a: i32, b: i32) -> i32 {
-    if a < b {
-        b.wrapping_sub(a)
-    } else {
-        a.wrapping_sub(b)
-    }
+const fn abs_diff(a: i32, b: i32) -> u32 {
+    a.wrapping_sub(b).wrapping_abs() as u32
 }
 
 #[cfg(test)]

@@ -79,7 +79,7 @@ fn fuzz_mul() {
 fn fuzz_pow() {
     fuzz_test_op_2_other(
         SoftF64::powi,
-        crate::compiler_builtins::pow,
+        crate::compiler_builtins::powi,
         None,
         Some("pow"),
     )
