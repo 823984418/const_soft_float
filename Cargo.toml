@@ -4,6 +4,7 @@ version = "0.1.3"
 edition = "2021"
 description = "Const Soft Float Point"
 keywords = ["const", "soft", "float-point"]
+categories = ["no-std"]
 repository = "https://github.com/823984418/const_soft_float"
 license = "MIT OR Apache-2.0"
 

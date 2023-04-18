@@ -76,9 +76,10 @@
  *      sqrt(NaN) = NaN         ... with invalid signal for signaling NaN
  */
 
-use core::cmp::Ordering;
-
-use crate::soft_f64::SoftF64;
+use crate::soft_f64::{
+    helpers::{ge, gt},
+    SoftF64,
+};
 
 type F = SoftF64;
 
@@ -187,12 +188,12 @@ pub(crate) const fn sqrt(x: F) -> F {
     /* use floating add to find out rounding direction */
     if (ix0 as u32 | ix1) != 0 {
         z = SoftF64(1.0).sub(TINY); /* raise inexact flag */
-        if ge(z, 1.0) {
-            z = SoftF64(1.0).add(TINY);
+        if ge(z, SoftF64::ONE) {
+            z = SoftF64::ONE.add(TINY);
             if q1 == 0xffffffff {
                 q1 = 0;
                 q += 1;
-            } else if gt(z, 1.0) {
+            } else if gt(z, SoftF64::ONE) {
                 if q1 == 0xfffffffe {
                     q += 1;
                 }
@@ -209,28 +210,6 @@ pub(crate) const fn sqrt(x: F) -> F {
     }
     ix0 += m << 20;
     SoftF64::from_bits((ix0 as u64) << 32 | ix1 as u64)
-}
-
-const fn gt(l: SoftF64, r: f64) -> bool {
-    if let Some(ord) = l.cmp(SoftF64(r)) {
-        match ord {
-            Ordering::Greater => true,
-            _ => false,
-        }
-    } else {
-        panic!("Failed to compare values");
-    }
-}
-
-const fn ge(l: SoftF64, r: f64) -> bool {
-    if let Some(ord) = l.cmp(SoftF64(r)) {
-        match ord {
-            Ordering::Less => false,
-            _ => true,
-        }
-    } else {
-        panic!("Failed to compare values");
-    }
 }
 
 #[cfg(test)]

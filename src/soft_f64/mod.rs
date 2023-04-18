@@ -1,10 +1,15 @@
+pub(crate) mod helpers;
+
 pub mod add;
 pub mod cmp;
 pub mod copysign;
+pub mod cos;
 pub mod div;
+pub mod floor;
 pub mod mul;
 pub mod pow;
 pub mod round;
+pub mod sin;
 pub mod sqrt;
 pub mod trunc;
 
@@ -81,6 +86,18 @@ impl SoftF64 {
     pub const fn round(self) -> Self {
         round::round(self)
     }
+
+    pub const fn floor(self) -> Self {
+        floor::floor(self)
+    }
+
+    pub const fn sin(self) -> Self {
+        sin::sin(self)
+    }
+
+    pub const fn cos(self) -> Self {
+        cos::cos(self)
+    }
 }
 
 type SelfInt = u64;
@@ -140,6 +157,10 @@ impl SoftF64 {
     }
     const fn is_subnormal(self) -> bool {
         (self.repr() & Self::EXPONENT_MASK) == 0
+    }
+
+    const fn scalbn(self, n: i32) -> SoftF64 {
+        helpers::scalbn(self, n)
     }
 }
 
