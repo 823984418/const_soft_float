@@ -84,8 +84,7 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.config.target }}
-          override: true   
-      - run: cd fuzz   
+          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: test
@@ -109,7 +108,7 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.config.target }}
-          override: true      
+          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: test
