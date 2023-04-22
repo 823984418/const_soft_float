@@ -63,7 +63,8 @@ jobs:
           override: true      
       - uses: actions-rs/cargo@v1
         with:
-          command: test --package const_soft_float
+          command: test
+          args: --package const_soft_float
   
   fuzzf32:
     name: Fuzz32
@@ -88,7 +89,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: test --package fuzz --lib f32_fuzz
+          args: --package fuzz --lib f32_fuzz
 
   fuzzf64:
     name: Fuzz64
@@ -112,4 +113,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: test --package fuzz --lib f64_fuzz
+          args: --package fuzz --lib f64_fuzz
