@@ -64,6 +64,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --package const_soft_float
   
   fuzzf32:
     name: Fuzz32
@@ -83,12 +84,11 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.config.target }}
-          override: true   
-      - run: cd fuzz   
+          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path fuzz/Cargo.toml --release -- f32
+          args: --package fuzz --lib f32_fuzz
 
   fuzzf64:
     name: Fuzz64
@@ -108,8 +108,8 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.config.target }}
-          override: true      
+          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path fuzz/Cargo.toml --release -- f64
+          args: --package fuzz --lib f64_fuzz
