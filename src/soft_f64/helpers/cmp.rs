@@ -34,3 +34,14 @@ pub(crate) const fn ge(l: SoftF64, r: SoftF64) -> bool {
         panic!("Failed to compare values");
     }
 }
+
+pub(crate) const fn lt(l: SoftF64, r: SoftF64) -> bool {
+    if let Some(ord) = l.cmp(r) {
+        match ord {
+            Ordering::Less => true,
+            _ => false,
+        }
+    } else {
+        panic!("Failed to compare values");
+    }
+}
