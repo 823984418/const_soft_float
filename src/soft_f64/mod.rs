@@ -5,7 +5,9 @@ pub mod cmp;
 pub mod copysign;
 pub mod cos;
 pub mod div;
+pub mod exp;
 pub mod floor;
+pub mod log;
 pub mod mul;
 pub mod pow;
 pub mod round;
@@ -98,6 +100,28 @@ impl SoftF64 {
     pub const fn cos(self) -> Self {
         cos::cos(self)
     }
+
+    pub const fn is_nan(self) -> bool {
+        !matches!(self.cmp(self), Some(core::cmp::Ordering::Equal))
+    }
+
+    pub const fn max(self, other: Self) -> Self {
+        let cond = self.is_nan() || matches!(self.cmp(other), Some(core::cmp::Ordering::Less));
+        (if cond { other } else { self }).mul(Self::ONE)
+    }
+
+    pub const fn min(self, other: Self) -> Self {
+        let cond = other.is_nan() || matches!(self.cmp(other), Some(core::cmp::Ordering::Less));
+        (if cond { self } else { other }).mul(Self::ONE)
+    }
+
+    pub const fn exp(self) -> Self {
+        exp::exp(self)
+    }
+
+    pub const fn ln(self) -> Self {
+        log::log(self)
+    }
 }
 
 type SelfInt = u64;
@@ -127,7 +151,7 @@ impl SoftF64 {
     const fn sign(self) -> bool {
         self.signed_repr() < 0
     }
-    const fn exp(self) -> SelfExpInt {
+    const fn exp2(self) -> SelfExpInt {
         ((self.to_bits() & Self::EXPONENT_MASK) >> Self::SIGNIFICAND_BITS) as SelfExpInt
     }
     const fn frac(self) -> SelfInt {
