@@ -1,6 +1,6 @@
 # Rust float-point in constant context
 
-Floating-point code is from `compiler_builtins = "0.1.87"` and `libm = "0.2.6"`, and has been rewritten for use in a constant context. 
+Floating-point code is from `compiler_builtins = "0.1.94"` and `libm = "0.2.6"`, and has been rewritten for use in a constant context. 
 
 Some fuzzing of operations is performed to ensure correctness of the port, but please open an issue if there is any inconsistent behavior.
 

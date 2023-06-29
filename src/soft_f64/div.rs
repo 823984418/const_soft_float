@@ -5,10 +5,15 @@ type F = SoftF64;
 type FInt = u64;
 
 pub(crate) const fn div(a: F, b: F) -> F {
-    let one: FInt = 1;
-    let zero: FInt = 0;
+    const NUMBER_OF_HALF_ITERATIONS: usize = 3;
+    const NUMBER_OF_FULL_ITERATIONS: usize = 1;
+    const USE_NATIVE_FULL_ITERATIONS: bool = false;
 
-    // let bits = F::BITS;
+    let one = 1;
+    let zero = 0;
+    let hw = F::BITS / 2;
+    let lo_mask = u64::MAX >> hw;
+
     let significand_bits = F::SIGNIFICAND_BITS;
     let max_exponent = F::EXPONENT_MAX;
 
@@ -16,18 +21,12 @@ pub(crate) const fn div(a: F, b: F) -> F {
 
     let implicit_bit = F::IMPLICIT_BIT;
     let significand_mask = F::SIGNIFICAND_MASK;
-    let sign_bit = F::SIGN_MASK as FInt;
+    let sign_bit = F::SIGN_MASK;
     let abs_mask = sign_bit - one;
     let exponent_mask = F::EXPONENT_MASK;
     let inf_rep = exponent_mask;
     let quiet_bit = implicit_bit >> 1;
     let qnan_rep = exponent_mask | quiet_bit;
-    // let exponent_bits = F::EXPONENT_BITS;
-
-    #[inline(always)]
-    const fn negate_u32(a: u32) -> u32 {
-        (<i32>::wrapping_neg(a as i32)) as u32
-    }
 
     #[inline(always)]
     const fn negate_u64(a: u64) -> u64 {
@@ -37,8 +36,8 @@ pub(crate) const fn div(a: F, b: F) -> F {
     let a_rep = a.repr();
     let b_rep = b.repr();
 
-    let a_exponent = (a_rep >> significand_bits) & max_exponent as FInt;
-    let b_exponent = (b_rep >> significand_bits) & max_exponent as FInt;
+    let a_exponent = (a_rep >> significand_bits) & max_exponent as u64;
+    let b_exponent = (b_rep >> significand_bits) & max_exponent as u64;
     let quotient_sign = (a_rep ^ b_rep) & sign_bit;
 
     let mut a_significand = a_rep & significand_mask;
@@ -46,8 +45,8 @@ pub(crate) const fn div(a: F, b: F) -> F {
     let mut scale = 0;
 
     // Detect if a or b is zero, denormal, infinity, or NaN.
-    if a_exponent.wrapping_sub(one) >= (max_exponent - 1) as FInt
-        || b_exponent.wrapping_sub(one) >= (max_exponent - 1) as FInt
+    if a_exponent.wrapping_sub(one) >= (max_exponent - 1) as u64
+        || b_exponent.wrapping_sub(one) >= (max_exponent - 1) as u64
     {
         let a_abs = a_rep & abs_mask;
         let b_abs = b_rep & abs_mask;
@@ -107,128 +106,326 @@ pub(crate) const fn div(a: F, b: F) -> F {
         }
     }
 
-    // Or in the implicit significand bit.  (If we fell through from the
+    // Set the implicit significand bit.  If we fell through from the
     // denormal path it was already set by normalize( ), but setting it twice
-    // won't hurt anything.)
+    // won't hurt anything.
     a_significand |= implicit_bit;
     b_significand |= implicit_bit;
-    let mut quotient_exponent: i32 = (a_exponent as i32)
-        .wrapping_sub(b_exponent as i32)
-        .wrapping_add(scale);
 
-    // Align the significand of b as a Q31 fixed-point number in the range
-    // [1, 2.0) and get a Q32 approximate reciprocal using a small minimax
-    // polynomial approximation: reciprocal = 3/4 + 1/sqrt(2) - b/2.  This
-    // is accurate to about 3.5 binary digits.
-    let q31b = (b_significand >> 21) as u32;
-    let mut recip32 = (0x7504f333u32).wrapping_sub(q31b);
+    let written_exponent: i64 = a_exponent
+        .wrapping_sub(b_exponent)
+        .wrapping_add(scale as u64)
+        .wrapping_add(exponent_bias as u64) as i64;
+    let b_uq1 = b_significand << (F::BITS - significand_bits - 1);
 
-    // Now refine the reciprocal estimate using a Newton-Raphson iteration:
+    // Align the significand of b as a UQ1.(n-1) fixed-point number in the range
+    // [1.0, 2.0) and get a UQ0.n approximate reciprocal using a small minimax
+    // polynomial approximation: x0 = 3/4 + 1/sqrt(2) - b/2.
+    // The max error for this approximation is achieved at endpoints, so
+    //   abs(x0(b) - 1/b) <= abs(x0(1) - 1/1) = 3/4 - 1/sqrt(2) = 0.04289...,
+    // which is about 4.5 bits.
+    // The initial approximation is between x0(1.0) = 0.9571... and x0(2.0) = 0.4571...
+
+    // Then, refine the reciprocal estimate using a quadratically converging
+    // Newton-Raphson iteration:
+    //     x_{n+1} = x_n * (2 - x_n * b)
     //
-    //     x1 = x0 * (2 - x0 * b)
+    // Let b be the original divisor considered "in infinite precision" and
+    // obtained from IEEE754 representation of function argument (with the
+    // implicit bit set). Corresponds to rep_t-sized b_UQ1 represented in
+    // UQ1.(W-1).
     //
-    // This doubles the number of correct binary digits in the approximation
-    // with each iteration, so after three iterations, we have about 28 binary
-    // digits of accuracy.
-
-    let mut correction32: u32 =
-        negate_u32(((recip32 as u64).wrapping_mul(q31b as u64) >> 32) as u32);
-    recip32 = ((recip32 as u64).wrapping_mul(correction32 as u64) >> 31) as u32;
-    correction32 = negate_u32(((recip32 as u64).wrapping_mul(q31b as u64) >> 32) as u32);
-    recip32 = ((recip32 as u64).wrapping_mul(correction32 as u64) >> 31) as u32;
-    correction32 = negate_u32(((recip32 as u64).wrapping_mul(q31b as u64) >> 32) as u32);
-    recip32 = ((recip32 as u64).wrapping_mul(correction32 as u64) >> 31) as u32;
-
-    // recip32 might have overflowed to exactly zero in the preceeding
-    // computation if the high word of b is exactly 1.0.  This would sabotage
-    // the full-width final stage of the computation that follows, so we adjust
-    // recip32 downward by one bit.
-    recip32 = recip32.wrapping_sub(1);
-
-    // We need to perform one more iteration to get us to 56 binary digits;
-    // The last iteration needs to happen with extra precision.
-    let q63blo = (b_significand << 11) as u32;
-
-    let correction: u64 = negate_u64(
-        (recip32 as u64)
-            .wrapping_mul(q31b as u64)
-            .wrapping_add((recip32 as u64).wrapping_mul(q63blo as u64) >> 32),
-    );
-    let c_hi = (correction >> 32) as u32;
-    let c_lo = correction as u32;
-    let mut reciprocal: u64 = (recip32 as u64)
-        .wrapping_mul(c_hi as u64)
-        .wrapping_add((recip32 as u64).wrapping_mul(c_lo as u64) >> 32);
-
-    // We already adjusted the 32-bit estimate, now we need to adjust the final
-    // 64-bit reciprocal estimate downward to ensure that it is strictly smaller
-    // than the infinitely precise exact reciprocal.  Because the computation
-    // of the Newton-Raphson step is truncating at every step, this adjustment
-    // is small; most of the work is already done.
-    reciprocal = reciprocal.wrapping_sub(2);
-
-    // The numerical reciprocal is accurate to within 2^-56, lies in the
-    // interval [0.5, 1.0), and is strictly smaller than the true reciprocal
-    // of b.  Multiplying a by this reciprocal thus gives a numerical q = a/b
-    // in Q53 with the following properties:
+    // Let b_hw be an infinitely precise number obtained from the highest (HW-1)
+    // bits of divisor significand (with the implicit bit set). Corresponds to
+    // half_rep_t-sized b_UQ1_hw represented in UQ1.(HW-1) that is a **truncated**
+    // version of b_UQ1.
     //
-    //    1. q < a/b
-    //    2. q is in the interval [0.5, 2.0)
-    //    3. the error in q is bounded away from 2^-53 (actually, we have a
-    //       couple of bits to spare, but this is all we need).
+    // Let e_n := x_n - 1/b_hw
+    //     E_n := x_n - 1/b
+    // abs(E_n) <= abs(e_n) + (1/b_hw - 1/b)
+    //           = abs(e_n) + (b - b_hw) / (b*b_hw)
+    //          <= abs(e_n) + 2 * 2^-HW
 
-    // We need a 64 x 64 multiply high to compute q, which isn't a basic
-    // operation in C, so we need to be a little bit fussy.
-    // let mut quotient: FInt = ((((reciprocal as u64)
-    //     .wrapping_mul(CastInto::<u32>::cast(a_significand << 1) as u64))
-    //     >> 32) as u32)
-    //     .cast();
+    // rep_t-sized iterations may be slower than the corresponding half-width
+    // variant depending on the handware and whether single/double/quad precision
+    // is selected.
+    // NB: Using half-width iterations increases computation errors due to
+    // rounding, so error estimations have to be computed taking the selected
+    // mode into account!
 
-    // We need a 64 x 64 multiply high to compute q, which isn't a basic
-    // operation in C, so we need to be a little bit fussy.
-    let mut quotient = u64_widen_mul(a_significand << 2, reciprocal as FInt).1;
+    let mut x_uq0 = if NUMBER_OF_HALF_ITERATIONS > 0 {
+        // Starting with (n-1) half-width iterations
+        let b_uq1_hw: u32 = (b_significand >> (significand_bits + 1 - hw)) as u32;
 
-    // Two cases: quotient is in [0.5, 1.0) or quotient is in [1.0, 2.0).
-    // In either case, we are going to compute a residual of the form
-    //
-    //     r = a - q*b
-    //
-    // We know from the construction of q that r satisfies:
-    //
-    //     0 <= r < ulp(q)*b
-    //
-    // if r is greater than 1/2 ulp(q)*b, then q rounds up.  Otherwise, we
-    // already have the correct result.  The exact halfway case cannot occur.
-    // We also take this time to right shift quotient if it falls in the [1,2)
-    // range and adjust the exponent accordingly.
-    let residual = if quotient < (implicit_bit << 1) {
-        quotient_exponent = quotient_exponent.wrapping_sub(1);
-        (a_significand << (significand_bits + 1)).wrapping_sub(quotient.wrapping_mul(b_significand))
+        // C is (3/4 + 1/sqrt(2)) - 1 truncated to W0 fractional bits as UQ0.HW
+        // with W0 being either 16 or 32 and W0 <= HW.
+        // That is, C is the aforementioned 3/4 + 1/sqrt(2) constant (from which
+        // b/2 is subtracted to obtain x0) wrapped to [0, 1) range.
+
+        // HW is at least 32. Shifting into the highest bits if needed.
+        let c_hw = (0x7504F333_u64 as u32).wrapping_shl(hw.wrapping_sub(32));
+
+        // b >= 1, thus an upper bound for 3/4 + 1/sqrt(2) - b/2 is about 0.9572,
+        // so x0 fits to UQ0.HW without wrapping.
+        let x_uq0_hw: u32 = {
+            let mut x_uq0_hw: u32 = c_hw.wrapping_sub(b_uq1_hw /* exact b_hw/2 as UQ0.HW */);
+            // dbg!(x_uq0_hw);
+            // An e_0 error is comprised of errors due to
+            // * x0 being an inherently imprecise first approximation of 1/b_hw
+            // * C_hw being some (irrational) number **truncated** to W0 bits
+            // Please note that e_0 is calculated against the infinitely precise
+            // reciprocal of b_hw (that is, **truncated** version of b).
+            //
+            // e_0 <= 3/4 - 1/sqrt(2) + 2^-W0
+
+            // By construction, 1 <= b < 2
+            // f(x)  = x * (2 - b*x) = 2*x - b*x^2
+            // f'(x) = 2 * (1 - b*x)
+            //
+            // On the [0, 1] interval, f(0)   = 0,
+            // then it increses until  f(1/b) = 1 / b, maximum on (0, 1),
+            // then it decreses to     f(1)   = 2 - b
+            //
+            // Let g(x) = x - f(x) = b*x^2 - x.
+            // On (0, 1/b), g(x) < 0 <=> f(x) > x
+            // On (1/b, 1], g(x) > 0 <=> f(x) < x
+            //
+            // For half-width iterations, b_hw is used instead of b.
+            let mut idx = 0;
+            while idx < NUMBER_OF_HALF_ITERATIONS {
+                // corr_UQ1_hw can be **larger** than 2 - b_hw*x by at most 1*Ulp
+                // of corr_UQ1_hw.
+                // "0.0 - (...)" is equivalent to "2.0 - (...)" in UQ1.(HW-1).
+                // On the other hand, corr_UQ1_hw should not overflow from 2.0 to 0.0 provided
+                // no overflow occurred earlier: ((rep_t)x_UQ0_hw * b_UQ1_hw >> HW) is
+                // expected to be strictly positive because b_UQ1_hw has its highest bit set
+                // and x_UQ0_hw should be rather large (it converges to 1/2 < 1/b_hw <= 1).
+                let corr_uq1_hw: u32 = 0_u64
+                    .wrapping_sub(((x_uq0_hw as u64).wrapping_mul(b_uq1_hw as u64)) >> hw)
+                    as u32;
+                // dbg!(corr_uq1_hw);
+
+                // Now, we should multiply UQ0.HW and UQ1.(HW-1) numbers, naturally
+                // obtaining an UQ1.(HW-1) number and proving its highest bit could be
+                // considered to be 0 to be able to represent it in UQ0.HW.
+                // From the above analysis of f(x), if corr_UQ1_hw would be represented
+                // without any intermediate loss of precision (that is, in twice_rep_t)
+                // x_UQ0_hw could be at most [1.]000... if b_hw is exactly 1.0 and strictly
+                // less otherwise. On the other hand, to obtain [1.]000..., one have to pass
+                // 1/b_hw == 1.0 to f(x), so this cannot occur at all without overflow (due
+                // to 1.0 being not representable as UQ0.HW).
+                // The fact corr_UQ1_hw was virtually round up (due to result of
+                // multiplication being **first** truncated, then negated - to improve
+                // error estimations) can increase x_UQ0_hw by up to 2*Ulp of x_UQ0_hw.
+                x_uq0_hw = ((x_uq0_hw as u64).wrapping_mul(corr_uq1_hw as u64) >> (hw - 1)) as u32;
+                // dbg!(x_uq0_hw);
+                // Now, either no overflow occurred or x_UQ0_hw is 0 or 1 in its half_rep_t
+                // representation. In the latter case, x_UQ0_hw will be either 0 or 1 after
+                // any number of iterations, so just subtract 2 from the reciprocal
+                // approximation after last iteration.
+
+                // In infinite precision, with 0 <= eps1, eps2 <= U = 2^-HW:
+                // corr_UQ1_hw = 2 - (1/b_hw + e_n) * b_hw + 2*eps1
+                //             = 1 - e_n * b_hw + 2*eps1
+                // x_UQ0_hw = (1/b_hw + e_n) * (1 - e_n*b_hw + 2*eps1) - eps2
+                //          = 1/b_hw - e_n + 2*eps1/b_hw + e_n - e_n^2*b_hw + 2*e_n*eps1 - eps2
+                //          = 1/b_hw + 2*eps1/b_hw - e_n^2*b_hw + 2*e_n*eps1 - eps2
+                // e_{n+1} = -e_n^2*b_hw + 2*eps1/b_hw + 2*e_n*eps1 - eps2
+                //         = 2*e_n*eps1 - (e_n^2*b_hw + eps2) + 2*eps1/b_hw
+                //                        \------ >0 -------/   \-- >0 ---/
+                // abs(e_{n+1}) <= 2*abs(e_n)*U + max(2*e_n^2 + U, 2 * U)
+                idx += 1;
+            }
+            // For initial half-width iterations, U = 2^-HW
+            // Let  abs(e_n)     <= u_n * U,
+            // then abs(e_{n+1}) <= 2 * u_n * U^2 + max(2 * u_n^2 * U^2 + U, 2 * U)
+            // u_{n+1} <= 2 * u_n * U + max(2 * u_n^2 * U + 1, 2)
+
+            // Account for possible overflow (see above). For an overflow to occur for the
+            // first time, for "ideal" corr_UQ1_hw (that is, without intermediate
+            // truncation), the result of x_UQ0_hw * corr_UQ1_hw should be either maximum
+            // value representable in UQ0.HW or less by 1. This means that 1/b_hw have to
+            // be not below that value (see g(x) above), so it is safe to decrement just
+            // once after the final iteration. On the other hand, an effective value of
+            // divisor changes after this point (from b_hw to b), so adjust here.
+            x_uq0_hw.wrapping_sub(1_u32)
+        };
+
+        // Error estimations for full-precision iterations are calculated just
+        // as above, but with U := 2^-W and taking extra decrementing into account.
+        // We need at least one such iteration.
+
+        // Simulating operations on a twice_rep_t to perform a single final full-width
+        // iteration. Using ad-hoc multiplication implementations to take advantage
+        // of particular structure of operands.
+        let blo: u64 = b_uq1 & lo_mask;
+        // x_UQ0 = x_UQ0_hw * 2^HW - 1
+        // x_UQ0 * b_UQ1 = (x_UQ0_hw * 2^HW) * (b_UQ1_hw * 2^HW + blo) - b_UQ1
+        //
+        //   <--- higher half ---><--- lower half --->
+        //   [x_UQ0_hw * b_UQ1_hw]
+        // +            [  x_UQ0_hw *  blo  ]
+        // -                      [      b_UQ1       ]
+        // = [      result       ][.... discarded ...]
+        let corr_uq1 = negate_u64(
+            (x_uq0_hw as u64) * (b_uq1_hw as u64) + (((x_uq0_hw as u64) * (blo)) >> hw) - 1,
+        ); // account for *possible* carry
+        let lo_corr = corr_uq1 & lo_mask;
+        let hi_corr = corr_uq1 >> hw;
+        // x_UQ0 * corr_UQ1 = (x_UQ0_hw * 2^HW) * (hi_corr * 2^HW + lo_corr) - corr_UQ1
+        let mut x_uq0: FInt = (((x_uq0_hw as u64) * hi_corr) << 1)
+            .wrapping_add(((x_uq0_hw as u64) * lo_corr) >> (hw - 1))
+            .wrapping_sub(2); // 1 to account for the highest bit of corr_UQ1 can be 1
+                              // 1 to account for possible carry
+                              // Just like the case of half-width iterations but with possibility
+                              // of overflowing by one extra Ulp of x_UQ0.
+        x_uq0 -= one;
+        // ... and then traditional fixup by 2 should work
+
+        // On error estimation:
+        // abs(E_{N-1}) <=   (u_{N-1} + 2 /* due to conversion e_n -> E_n */) * 2^-HW
+        //                 + (2^-HW + 2^-W))
+        // abs(E_{N-1}) <= (u_{N-1} + 3.01) * 2^-HW
+
+        // Then like for the half-width iterations:
+        // With 0 <= eps1, eps2 < 2^-W
+        // E_N  = 4 * E_{N-1} * eps1 - (E_{N-1}^2 * b + 4 * eps2) + 4 * eps1 / b
+        // abs(E_N) <= 2^-W * [ 4 * abs(E_{N-1}) + max(2 * abs(E_{N-1})^2 * 2^W + 4, 8)) ]
+        // abs(E_N) <= 2^-W * [ 4 * (u_{N-1} + 3.01) * 2^-HW + max(4 + 2 * (u_{N-1} + 3.01)^2, 8) ]
+        x_uq0
     } else {
-        quotient >>= 1;
-        (a_significand << significand_bits).wrapping_sub(quotient.wrapping_mul(b_significand))
+        // C is (3/4 + 1/sqrt(2)) - 1 truncated to 64 fractional bits as UQ0.n
+        let c: FInt = 0x7504F333 << (F::BITS - 32);
+        let x_uq0: FInt = c.wrapping_sub(b_uq1);
+        // E_0 <= 3/4 - 1/sqrt(2) + 2 * 2^-64
+        x_uq0
     };
 
-    let written_exponent = quotient_exponent.wrapping_add(exponent_bias as i32);
-
-    if written_exponent >= max_exponent as i32 {
-        // If we have overflowed the exponent, return infinity.
-        return F::from_repr(inf_rep | quotient_sign);
-    } else if written_exponent < 1 {
-        // Flush denormals to zero.  In the future, it would be nice to add
-        // code to round them correctly.
-        return F::from_repr(quotient_sign);
+    let mut x_uq0 = if USE_NATIVE_FULL_ITERATIONS {
+        let mut idx = 0;
+        while idx < NUMBER_OF_FULL_ITERATIONS {
+            let corr_uq1: u64 = 0_u64.wrapping_sub((x_uq0 * b_uq1) >> F::BITS);
+            x_uq0 = (((x_uq0 as u128) * (corr_uq1 as u128)) >> (F::BITS - 1)) as u64;
+            idx += 1;
+        }
+        x_uq0
     } else {
-        let round = ((residual << 1) > b_significand) as u32;
-        // Clear the implicit bits
-        let mut abs_result = quotient & significand_mask;
-        // Insert the exponent
-        abs_result |= (written_exponent as FInt) << significand_bits;
-        // Round
-        abs_result = abs_result.wrapping_add(round as FInt);
-        // Insert the sign and return
-        return F::from_repr(abs_result | quotient_sign);
+        // not using native full iterations
+        x_uq0
+    };
+
+    // Finally, account for possible overflow, as explained above.
+    x_uq0 = x_uq0.wrapping_sub(2);
+
+    // u_n for different precisions (with N-1 half-width iterations):
+    // W0 is the precision of C
+    //   u_0 = (3/4 - 1/sqrt(2) + 2^-W0) * 2^HW
+
+    // Estimated with bc:
+    //   define half1(un) { return 2.0 * (un + un^2) / 2.0^hw + 1.0; }
+    //   define half2(un) { return 2.0 * un / 2.0^hw + 2.0; }
+    //   define full1(un) { return 4.0 * (un + 3.01) / 2.0^hw + 2.0 * (un + 3.01)^2 + 4.0; }
+    //   define full2(un) { return 4.0 * (un + 3.01) / 2.0^hw + 8.0; }
+
+    //             | f32 (0 + 3) | f32 (2 + 1)  | f64 (3 + 1)  | f128 (4 + 1)
+    // u_0         | < 184224974 | < 2812.1     | < 184224974  | < 791240234244348797
+    // u_1         | < 15804007  | < 242.7      | < 15804007   | < 67877681371350440
+    // u_2         | < 116308    | < 2.81       | < 116308     | < 499533100252317
+    // u_3         | < 7.31      |              | < 7.31       | < 27054456580
+    // u_4         |             |              |              | < 80.4
+    // Final (U_N) | same as u_3 | < 72         | < 218        | < 13920
+
+    // Add 2 to U_N due to final decrement.
+
+    let reciprocal_precision: FInt = 220;
+
+    // Suppose 1/b - P * 2^-W < x < 1/b + P * 2^-W
+    let x_uq0 = x_uq0 - reciprocal_precision;
+    // Now 1/b - (2*P) * 2^-W < x < 1/b
+    // FIXME Is x_UQ0 still >= 0.5?
+
+    let mut quotient: FInt = u64_widen_mul(x_uq0, a_significand << 1).1;
+    // Now, a/b - 4*P * 2^-W < q < a/b for q=<quotient_UQ1:dummy> in UQ1.(SB+1+W).
+
+    // quotient_UQ1 is in [0.5, 2.0) as UQ1.(SB+1),
+    // adjust it to be in [1.0, 2.0) as UQ1.SB.
+    let (mut residual, written_exponent) = if quotient < (implicit_bit << 1) {
+        // Highest bit is 0, so just reinterpret quotient_UQ1 as UQ1.SB,
+        // effectively doubling its value as well as its error estimation.
+        let residual_lo = (a_significand << (significand_bits + 1))
+            .wrapping_sub(quotient.wrapping_mul(b_significand));
+        a_significand <<= 1;
+        (residual_lo, written_exponent.wrapping_sub(1))
+    } else {
+        // Highest bit is 1 (the UQ1.(SB+1) value is in [1, 2)), convert it
+        // to UQ1.SB by right shifting by 1. Least significant bit is omitted.
+        quotient >>= 1;
+        let residual_lo =
+            (a_significand << significand_bits).wrapping_sub(quotient.wrapping_mul(b_significand));
+        (residual_lo, written_exponent)
+    };
+
+    //drop mutability
+    let quotient = quotient;
+
+    // NB: residualLo is calculated above for the normal result case.
+    //     It is re-computed on denormal path that is expected to be not so
+    //     performance-sensitive.
+
+    // Now, q cannot be greater than a/b and can differ by at most 8*P * 2^-W + 2^-SB
+    // Each NextAfter() increments the floating point value by at least 2^-SB
+    // (more, if exponent was incremented).
+    // Different cases (<---> is of 2^-SB length, * = a/b that is shown as a midpoint):
+    //   q
+    //   |   | * |   |   |       |       |
+    //       <--->      2^t
+    //   |   |   |   |   |   *   |       |
+    //               q
+    // To require at most one NextAfter(), an error should be less than 1.5 * 2^-SB.
+    //   (8*P) * 2^-W + 2^-SB < 1.5 * 2^-SB
+    //   (8*P) * 2^-W         < 0.5 * 2^-SB
+    //   P < 2^(W-4-SB)
+    // Generally, for at most R NextAfter() to be enough,
+    //   P < (2*R - 1) * 2^(W-4-SB)
+    // For f32 (0+3): 10 < 32 (OK)
+    // For f32 (2+1): 32 < 74 < 32 * 3, so two NextAfter() are required
+    // For f64: 220 < 256 (OK)
+    // For f128: 4096 * 3 < 13922 < 4096 * 5 (three NextAfter() are required)
+
+    // If we have overflowed the exponent, return infinity
+    if written_exponent >= max_exponent as i64 {
+        return F::from_repr(inf_rep | quotient_sign);
     }
+
+    // Now, quotient <= the correctly-rounded result
+    // and may need taking NextAfter() up to 3 times (see error estimates above)
+    // r = a - b * q
+    let abs_result = if written_exponent > 0 {
+        let mut ret = quotient & significand_mask;
+        ret |= (written_exponent as u64) << significand_bits;
+        residual <<= 1;
+        ret
+    } else {
+        if (significand_bits as i64 + written_exponent) < 0 {
+            return F::from_repr(quotient_sign);
+        }
+        let ret = quotient.wrapping_shr((negate_u64(written_exponent as u64) + 1) as u32);
+        residual = a_significand
+            .wrapping_shl(significand_bits.wrapping_add(written_exponent as u32))
+            .wrapping_sub(((ret).wrapping_mul(b_significand)) << 1);
+        ret
+    };
+    // Round
+    let abs_result = {
+        residual += abs_result & one; // tie to even
+                                      // conditionally turns the below LT comparison into LTE
+        if residual > b_significand {
+            abs_result + one
+        } else {
+            abs_result
+        }
+    };
+    F::from_repr(abs_result | quotient_sign)
 }
 
 #[cfg(test)]
