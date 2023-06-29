@@ -66,8 +66,8 @@ jobs:
           command: test
           args: --package const_soft_float
   
-  fuzzf32:
-    name: Fuzz32
+  fuzzf32basic:
+    name: Fuzz32Basic
     runs-on: ${{ matrix.config.os }}
     needs: [test]
     strategy:
@@ -88,10 +88,10 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --package fuzz --lib f32_fuzz
+          args: --package fuzz --lib f32_fuzz::basic_tests
 
-  fuzzf64:
-    name: Fuzz64
+  fuzzf32libm:
+    name: Fuzz32Libm
     runs-on: ${{ matrix.config.os }}
     needs: [test]
     strategy:
@@ -112,4 +112,52 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --package fuzz --lib f64_fuzz
+          args: --package fuzz --lib f32_fuzz::libm_tests
+
+  fuzzf64basic:
+    name: Fuzz64Basic
+    runs-on: ${{ matrix.config.os }}
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+          - { os: macos-latest, target: 'x86_64-apple-darwin' }
+          - { os: windows-latest, target: 'x86_64-pc-windows-msvc' }
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.config.target }}
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --package fuzz --lib f64_fuzz::basic_tests
+
+  fuzzf64libm:
+    name: Fuzz64Libm
+    runs-on: ${{ matrix.config.os }}
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: ubuntu-latest, target: 'x86_64-unknown-linux-gnu' }
+          - { os: macos-latest, target: 'x86_64-apple-darwin' }
+          - { os: windows-latest, target: 'x86_64-pc-windows-msvc' }
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.config.target }}
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --package fuzz --lib f64_fuzz::libm_tests
