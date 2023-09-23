@@ -96,6 +96,42 @@ mod basic_tests {
     fn fuzz_trunc() {
         fuzz_test_op(SoftF64::trunc, f64::trunc, None, Some("trunc"));
     }
+
+    #[test]
+    fn fuzz_min() {
+        fuzz_test_op_2(
+            SoftF64::min,
+            f64::min,
+            crate::Argument::First,
+            None,
+            Some("min"),
+        );
+        fuzz_test_op_2(
+            SoftF64::min,
+            f64::min,
+            crate::Argument::Second,
+            None,
+            Some("min"),
+        );
+    }
+
+    #[test]
+    fn fuzz_max() {
+        fuzz_test_op_2(
+            SoftF64::max,
+            f64::max,
+            crate::Argument::First,
+            None,
+            Some("max"),
+        );
+        fuzz_test_op_2(
+            SoftF64::max,
+            f64::max,
+            crate::Argument::Second,
+            None,
+            Some("max"),
+        );
+    }
 }
 
 mod libm_tests {
@@ -139,5 +175,15 @@ mod libm_tests {
     fn fuzz_cos() {
         // cannot remove all instance of hard-float usage in libm, so
         fuzz_test_op(SoftF64::cos, libm::cos, Some(1e-6), Some("cos"))
+    }
+
+    #[test]
+    fn fuzz_ln() {
+        fuzz_test_op(SoftF64::ln, libm::log, None, Some("ln"));
+    }
+
+    #[test]
+    fn fuzz_exp() {
+        fuzz_test_op(SoftF64::exp, libm::exp, None, Some("exp"));
     }
 }

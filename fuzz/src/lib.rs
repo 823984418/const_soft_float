@@ -331,7 +331,7 @@ mod sf64 {
 
     pub fn fuzz_test_op_2_other<T: nanorand::RandomGen<nanorand::WyRand, 8> + Display + Copy>(
         mut soft: impl FnMut(SoftF64, T) -> SoftF64,
-        mut hard: impl FnMut(f64, T) -> f64,
+        mut reference: impl FnMut(f64, T) -> f64,
         eps: Option<f64>,
         name: Option<&str>,
     ) {
@@ -348,7 +348,7 @@ mod sf64 {
 
         let mut hard = |x: f64| -> (f64, T) {
             let rand = hard_rng.generate::<T>();
-            let ret = hard(x, rand);
+            let ret = reference(x, rand);
             (ret, rand)
         };
 
